@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import qs.plugins.bar as Native
+import qs.Ui
 
 // Inherit the installed bar: widgets, theme, popouts, IPC and hidden-state IO
 // stay Omarchy-owned. Only the top-edge window placement changes.
@@ -53,6 +54,8 @@ Native.Bar {
       Item {
         id: peek
         required property var modelData
+        property bool ready: false
+        Component.onCompleted: Qt.callLater(() => ready = true)
         readonly property bool enabledHere: root.position === "top"
         property bool revealed: false
         readonly property var hoverState: ({ bar: barHover.hovered, edge: edgeHover.hovered, catching: edge.catching })
@@ -76,7 +79,7 @@ Native.Bar {
           target: peek.modelData
           property: "margins.top"
           value: Math.round(peek.offset)
-          when: peek.enabledHere
+          when: peek.ready && peek.enabledHere
           restoreMode: Binding.RestoreBindingOrValue
         }
 
@@ -84,7 +87,7 @@ Native.Bar {
           target: peek.modelData.WlrLayershell
           property: "layer"
           value: WlrLayer.Overlay
-          when: peek.enabledHere && root.barHidden
+          when: peek.ready && peek.enabledHere && root.barHidden
           restoreMode: Binding.RestoreBindingOrValue
         }
 
@@ -109,7 +112,7 @@ Native.Bar {
           id: edge
           readonly property bool catching: visible && (!peek.revealed || !barHover.hovered)
           screen: peek.modelData.screen
-          visible: peek.enabledHere && root.barHidden
+          visible: peek.ready && peek.enabledHere && root.barHidden && !edgeRemap.remapping
           color: "transparent"
           implicitHeight: 2
           anchors { top: true; left: true; right: true }
@@ -120,6 +123,8 @@ Native.Bar {
           WlrLayershell.namespace: "omarchy-topbar-peek-edge"
           WlrLayershell.layer: WlrLayer.Overlay
           WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+
+          ScreenMoveRemap { id: edgeRemap; window: edge }
 
           HoverHandler {
             id: edgeHover

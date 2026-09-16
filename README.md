@@ -11,6 +11,8 @@ reserves desktop space. A normally visible bar behaves as usual.
 ## Install
 
 Requires Omarchy 4's Quickshell bar. Tested on Omarchy **4.0.4-1**.
+There are no extra runtime dependencies. Python 3 is only needed for the live
+regression check.
 
 ```sh
 omarchy plugin add https://github.com/WhiteHades/omarchy-topbar-peek --enable --yes
@@ -60,6 +62,7 @@ move into them without losing their anchor.
 ```sh
 omarchy plugin validate .
 python check.py
+python check.py --appearance
 omarchy shell topbar-peek status
 ```
 
@@ -70,9 +73,26 @@ reveal, widget hover, overlay placement, unchanged window geometry and monitor
 reserved space, popup retention, hide, and normal pinned visibility. It assumes
 the stock clock widget is enabled and no popout is already open.
 
+Leave the pointer idle during the check. `--appearance` repeats it with
+`omarchy bar transparent true/false` and `omarchy plugin enable/disable
+omarchy.background`, then restores both settings. Bar transparency and desktop
+wallpaper are independent: all four combinations work.
+
+Live checks on Omarchy 4.0.4-1 covered:
+
+| Scenario | Result |
+|---|---|
+| Hidden edge reveal, widget hover, exit and rapid re-entry | Passed |
+| Clock popout interaction and dismissal | Passed |
+| Normal pinned mode and 16 consecutive native toggles | Passed |
+| Opaque and transparent bars, with and without desktop wallpaper | Passed |
+| Overlay above a fullscreen application, unchanged window geometry | Passed |
+| Physical display plus a virtual display at 125% scale | Passed |
+| Virtual output hotplug, removal and monitor-origin change | Passed |
+
 After editing an installed checkout, use `omarchy restart shell` if plugin
-hot-reload has retained cached QML. Live validation here used one display at
-125% scale; physical multi-monitor hotplug has not been verified.
+hot-reload has retained cached QML. Physical monitor unplug/replug and other
+hardware/scale combinations have not been verified.
 
 ## Existing work
 

@@ -62,8 +62,16 @@ def check():
             wait_for(lambda s: panel(s)["offset"] == 0 and panel(s)["revealed"])
             assert flag.exists(), "Hover changed the user's hidden preference"
             assert geometry() == before, "Hover changed client geometry or reserved space"
-            layers = json.loads(run("hyprctl", "layers", "-j"))[name]["levels"]["3"]
-            assert any(w["namespace"] == "omarchy-bar" and w["y"] == y for w in layers)
+            # QML animation completion precedes the compositor's frame commit,
+            # especially on a headless output. Check the committed placement.
+            deadline = time.monotonic() + 3
+            while time.monotonic() < deadline:
+                layers = json.loads(run("hyprctl", "layers", "-j"))[name]["levels"]["3"]
+                if any(w["namespace"] == "omarchy-bar" and w["y"] == y for w in layers):
+                    break
+                time.sleep(0.02)
+            else:
+                raise AssertionError((name, "bar did not reach the overlay edge", layers))
             for pointer_y in [y + 12, y, y + 12]:
                 move(x, pointer_y)
                 time.sleep(0.4)

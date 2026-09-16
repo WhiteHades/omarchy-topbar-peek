@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.whitehades.topbar-peek",
   "name": "Omarchy Top Bar Peek",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "WhiteHades",
   "description": "Reveal your hidden Omarchy top bar at the screen edge, without moving windows.",
   "kinds": ["bar"],
