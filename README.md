@@ -8,6 +8,16 @@ installed bar. Your widgets, layout, colors, fonts, transparency, menus and
 popouts remain native. Hover never changes the saved hidden preference or
 reserves desktop space. A normally visible bar behaves as usual.
 
+## See it in action
+
+[Watch the 19-second demo](media/demo.mp4): edge reveal, movement across the
+bar, a calendar popout, and automatic hiding. Recorded on an empty workspace
+with Omarchy's screen recorder, at 1080p/60 fps without audio.
+
+| Hidden | Revealed at the top edge |
+|---|---|
+| ![Empty workspace with the top bar hidden](media/hidden.png) | ![The native top bar revealed above the same wallpaper](preview.png) |
+
 ## Install
 
 Requires Omarchy 4's Quickshell bar. Tested on Omarchy **4.0.4-1**.
