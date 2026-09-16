@@ -1,6 +1,6 @@
 # Omarchy Top Bar Peek
 
-Hide your top bar with the usual Omarchy toggle. Touch the top two pixels of
+Hide your top bar with the usual Omarchy toggle. Touch the top two logical pixels of
 the screen to slide it back over your windows. Move away and it slides out.
 
 Top Bar Peek runs inside Omarchy's existing Quickshell process and inherits the
@@ -38,6 +38,11 @@ behavior. Each screen gets its own reveal trigger. The bar appears in the
 overlay layer, including above fullscreen applications. Session locking is
 still controlled by Omarchy.
 
+Sizing stays in Qt/Wayland logical coordinates. Each output applies its own
+scale to the native widgets, bar height, slide distance, and two-pixel edge
+trigger. For example, the trigger occupies four physical pixels at 200%.
+Mixed-DPI outputs do not share a hard-coded physical bar size.
+
 Update or return to the stock bar:
 
 ```sh
@@ -74,6 +79,7 @@ move into them without losing their anchor.
 omarchy plugin validate .
 python check.py
 python check.py --appearance
+python check.py --monitor DP-1
 omarchy shell topbar-peek status
 ```
 
@@ -81,7 +87,7 @@ Run the check from an active Hyprland session with Top Bar Peek selected and the
 at the top. Install the check dependency with `omarchy pkg add python-evdev`
 if needed. Your session must have write access to `/dev/uinput` for its temporary
 test pointer. Compositor pointer warps alone do not deliver motion within a
-surface, so tray checks use actual input events.
+surface, so interaction checks use actual input events.
 
 It moves the pointer, opens/closes the clock and tray management popouts, and
 toggles the bar; it restores the pointer and hidden preference afterward. It checks edge
@@ -91,6 +97,13 @@ checks native tray expansion, movement across app icons, right-click management,
 and collapse in both hidden and pinned modes. Tray checks report a skip when
 there are no drawer items. It assumes the stock clock widget is enabled and no
 popout is already open.
+
+`--monitor` selects an existing output for DPI checks. It verifies the bar and
+edge trigger's full logical width and position against the compositor, along
+with the usual hover, tray, popup, and geometry checks. It uses tray clicks for
+popup coverage when drawer items exist, because native clock IPC has no output
+selector. Headless outputs need an active screencopy consumer during these
+checks so Hyprland continues presenting frames.
 
 Leave the pointer idle during the check. `--appearance` repeats it with
 `omarchy bar transparent true/false` and `omarchy plugin enable/disable
@@ -107,12 +120,17 @@ Live checks on Omarchy 4.0.4-1 covered:
 | Normal pinned mode and 16 consecutive native toggles | Passed |
 | Opaque and transparent bars, with and without desktop wallpaper | Passed |
 | Overlay above a fullscreen application, unchanged window geometry | Passed |
-| Physical display plus a virtual display at 125% scale | Passed |
+| Physical display at 125%, with an actively captured virtual output at 100%, 125%, 150%, 175%, 200%, 250%, and 300% | Passed |
+| Physical display changed live to 150%, then restored to 125% | Passed |
 | Virtual output hotplug, removal and monitor-origin change | Passed |
 
 After editing an installed checkout, use `omarchy restart shell` if plugin
-hot-reload has retained cached QML. Physical monitor unplug/replug and other
-hardware/scale combinations have not been verified.
+hot-reload has retained cached QML. DPI checks used a 3360×2100 virtual output
+alongside the 1920×1080 physical display, including live scale changes after
+the output settled. The virtual output had an active screencopy consumer;
+without one, its compositor could leave a parked layer at its old position
+despite QML reporting the new margin. Physical monitor unplug/replug and other hardware/scale
+combinations have not been verified.
 
 ## Existing work
 
