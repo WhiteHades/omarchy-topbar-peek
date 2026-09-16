@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.whitehades.peek",
+  "name": "Omarchy Peek",
+  "version": "1.0.0",
+  "author": "WhiteHades",
+  "description": "Reveal your hidden Omarchy top bar at the screen edge, without moving windows.",
+  "kinds": ["bar"],
+  "entryPoints": { "bar": "Bar.qml" },
+  "omarchy": { "clonedFrom": "omarchy.bar" }
+}

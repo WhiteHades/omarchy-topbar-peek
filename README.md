@@ -1,0 +1,89 @@
+# Omarchy Peek
+
+Hide your top bar with the usual Omarchy toggle. Touch the top two pixels of
+the screen to slide it back over your windows. Move away and it slides out.
+
+Peek runs inside Omarchy's existing Quickshell process and inherits the
+installed bar. Your widgets, layout, colors, fonts, transparency, menus and
+popouts remain native. Hover never changes the saved hidden preference or
+reserves desktop space. A normally visible bar behaves as usual.
+
+## Install
+
+Requires Omarchy 4's Quickshell bar. Tested on Omarchy **4.0.4-1**.
+
+```sh
+omarchy plugin add https://github.com/WhiteHades/omarchy-peek --enable --yes
+```
+
+Use **Super + Shift + Space** to toggle the bar. While hidden, hover at the
+top edge. The bar stays open over its widgets and while a widget popout is
+open. After leaving, it waits 120 ms and slides out over 140 ms using the same
+`OutCubic` easing and duration as Omarchy's popup cards.
+
+This behavior applies to top bars only. Other bar positions retain their stock
+behavior. Each screen gets its own reveal trigger. The bar appears in the
+overlay layer, including above fullscreen applications. Session locking is
+still controlled by Omarchy.
+
+Update or return to the stock bar:
+
+```sh
+omarchy plugin update io.github.whitehades.peek --yes
+omarchy bar use omarchy.bar
+# Optional, after switching back:
+omarchy plugin remove io.github.whitehades.peek --yes
+```
+
+## How it works
+
+`Bar.qml` inherits `qs.plugins.bar.Bar`. It finds that bar's native panel
+windows and adds a two-pixel Wayland edge trigger plus a passive hover
+observer. While hidden, it animates only the top margin and promotes the
+window to the overlay layer. The stock bar keeps `ExclusionMode.Ignore`
+because its `barHidden` state stays true. No polling process, extra daemon,
+copied widget implementation, packaged-file edit, or Hyprland rule is needed.
+
+Installation and selection use Omarchy's official plugin commands. The QML
+inheritance and panel discovery use **internal bar implementation details**,
+not a promised stable Omarchy API. Changes to those internals may require a
+Peek update. The plugin is independent of Omarchy and replaces any other
+selected full-bar plugin. Third-party widget service access follows Omarchy's
+normal restrictions for replacement bars.
+
+The reveal trigger releases input once the slide finishes, so widgets remain
+clickable up to the top edge. Popouts hold the bar until dismissed so you can
+move into them without losing their anchor.
+
+## Verify or develop
+
+```sh
+omarchy plugin validate .
+python check.py
+omarchy shell peek status
+```
+
+Run the check from an active Hyprland session with Peek selected and the bar
+at the top. It moves the pointer, opens/closes the clock popout, and toggles the
+bar; it restores the pointer and hidden preference afterward. It checks edge
+reveal, widget hover, overlay placement, unchanged window geometry and monitor
+reserved space, popup retention, hide, and normal pinned visibility. It assumes
+the stock clock widget is enabled and no popout is already open.
+
+After editing an installed checkout, use `omarchy restart shell` if plugin
+hot-reload has retained cached QML. Live validation here used one display at
+125% scale; physical multi-monitor hotplug has not been verified.
+
+## Existing work
+
+Omarchy's [native bar](https://github.com/omacom/omarchy/blob/quattro/shell/plugins/bar/Bar.qml)
+already parks hidden windows off-screen, but does not expose an edge-reveal
+setting. Its [plugin system](https://omarchy.org/manual/shell-plugins/) provides
+installation and full-bar selection.
+
+[ericvrp's autohide plugin](https://github.com/ericvrp/omarchy-bar-autohide)
+provided a useful edge-trigger and hover-observer reference. Its reveal removes
+the hidden flag, which restores the native reserved area, and it has no slide
+animation. [Bar Control](https://github.com/radyalz/omarchy-bar-control) adds
+animated autohide through a full bar copy, but also reserves space when shown.
+Peek keeps the stock hidden state throughout the overlay reveal.
