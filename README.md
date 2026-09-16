@@ -1,9 +1,9 @@
-# Omarchy Peek
+# Omarchy Top Bar Peek
 
 Hide your top bar with the usual Omarchy toggle. Touch the top two pixels of
 the screen to slide it back over your windows. Move away and it slides out.
 
-Peek runs inside Omarchy's existing Quickshell process and inherits the
+Top Bar Peek runs inside Omarchy's existing Quickshell process and inherits the
 installed bar. Your widgets, layout, colors, fonts, transparency, menus and
 popouts remain native. Hover never changes the saved hidden preference or
 reserves desktop space. A normally visible bar behaves as usual.
@@ -13,7 +13,7 @@ reserves desktop space. A normally visible bar behaves as usual.
 Requires Omarchy 4's Quickshell bar. Tested on Omarchy **4.0.4-1**.
 
 ```sh
-omarchy plugin add https://github.com/WhiteHades/omarchy-peek --enable --yes
+omarchy plugin add https://github.com/WhiteHades/omarchy-topbar-peek --enable --yes
 ```
 
 Use **Super + Shift + Space** to toggle the bar. While hidden, hover at the
@@ -29,10 +29,10 @@ still controlled by Omarchy.
 Update or return to the stock bar:
 
 ```sh
-omarchy plugin update io.github.whitehades.peek --yes
+omarchy plugin update io.github.whitehades.topbar-peek --yes
 omarchy bar use omarchy.bar
 # Optional, after switching back:
-omarchy plugin remove io.github.whitehades.peek --yes
+omarchy plugin remove io.github.whitehades.topbar-peek --yes
 ```
 
 ## How it works
@@ -47,12 +47,12 @@ copied widget implementation, packaged-file edit, or Hyprland rule is needed.
 Installation and selection use Omarchy's official plugin commands. The QML
 inheritance and panel discovery use **internal bar implementation details**,
 not a promised stable Omarchy API. Changes to those internals may require a
-Peek update. The plugin is independent of Omarchy and replaces any other
+Top Bar Peek update. The plugin is independent of Omarchy and replaces any other
 selected full-bar plugin. Third-party widget service access follows Omarchy's
 normal restrictions for replacement bars.
 
-The reveal trigger releases input once the slide finishes, so widgets remain
-clickable up to the top edge. Popouts hold the bar until dismissed so you can
+Once the pointer enters the bar below the trigger, the trigger releases input,
+including its top two pixels. Popouts hold the bar until dismissed so you can
 move into them without losing their anchor.
 
 ## Verify or develop
@@ -60,10 +60,10 @@ move into them without losing their anchor.
 ```sh
 omarchy plugin validate .
 python check.py
-omarchy shell peek status
+omarchy shell topbar-peek status
 ```
 
-Run the check from an active Hyprland session with Peek selected and the bar
+Run the check from an active Hyprland session with Top Bar Peek selected and the bar
 at the top. It moves the pointer, opens/closes the clock popout, and toggles the
 bar; it restores the pointer and hidden preference afterward. It checks edge
 reveal, widget hover, overlay placement, unchanged window geometry and monitor
@@ -86,4 +86,4 @@ provided a useful edge-trigger and hover-observer reference. Its reveal removes
 the hidden flag, which restores the native reserved area, and it has no slide
 animation. [Bar Control](https://github.com/radyalz/omarchy-bar-control) adds
 animated autohide through a full bar copy, but also reserves space when shown.
-Peek keeps the stock hidden state throughout the overlay reveal.
+Top Bar Peek keeps the stock hidden state throughout the overlay reveal.

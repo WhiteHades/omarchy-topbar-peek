@@ -35,12 +35,12 @@ Native.Bar {
   }
 
   IpcHandler {
-    target: "peek"
+    target: "topbar-peek"
     function status(): string {
       return JSON.stringify({ hidden: root.barHidden, position: root.position,
         screens: peekControllers.instances.map(p => ({
           name: p.modelData.screen.name, revealed: p.revealed,
-          held: p.held, offset: p.offset
+          held: p.held, offset: p.offset, hover: p.hoverState
         })) })
     }
   }
@@ -55,6 +55,7 @@ Native.Bar {
         required property var modelData
         readonly property bool enabledHere: root.position === "top"
         property bool revealed: false
+        readonly property var hoverState: ({ bar: barHover.hovered, edge: edgeHover.hovered, catching: edge.catching })
         readonly property bool held: barHover.hovered || (edge.catching && edgeHover.hovered)
           || (root.activePopout !== null && root.targetBelongsToWindow(root.activePopout, modelData))
           || root.barDragWindow === modelData || root.barMoveWindow === modelData
@@ -94,28 +95,29 @@ Native.Bar {
           HoverHandler {
             id: barHover
             blocking: false
+            onHoveredChanged: if (hovered && root.barHidden && peek.enabledHere) peek.revealed = true
           }
         }
 
         Timer {
           interval: 120
           running: peek.revealed && !peek.held
-          onTriggered: peek.revealed = false
+          onTriggered: if (!peek.held) peek.revealed = false
         }
 
         PanelWindow {
           id: edge
-          readonly property bool catching: visible && (!peek.revealed || peek.offset < 0)
+          readonly property bool catching: visible && (!peek.revealed || !barHover.hovered)
           screen: peek.modelData.screen
           visible: peek.enabledHere && root.barHidden
           color: "transparent"
           implicitHeight: 2
           anchors { top: true; left: true; right: true }
           exclusionMode: ExclusionMode.Ignore
-          // Once the bar reaches the edge, hand even its topmost pixels back
-          // to the widgets without unmapping the trigger during the slide.
+          // Hand input back after the pointer enters the bar. Clearing the
+          // mask at animation end alone may not generate a new pointer enter.
           mask: Region { width: edge.catching ? edge.width : 0; height: 2 }
-          WlrLayershell.namespace: "omarchy-peek-edge"
+          WlrLayershell.namespace: "omarchy-topbar-peek-edge"
           WlrLayershell.layer: WlrLayer.Overlay
           WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
