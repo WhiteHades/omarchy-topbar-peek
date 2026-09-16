@@ -21,8 +21,8 @@ with Omarchy's screen recorder, at 1080p/60 fps without audio.
 ## Install
 
 Requires Omarchy 4's Quickshell bar. Tested on Omarchy **4.0.4-1**.
-There are no extra runtime dependencies. Python 3 is only needed for the live
-regression check.
+There are no extra runtime dependencies. The optional live regression check
+uses Python 3 and `python-evdev` with access to `/dev/uinput`.
 
 ```sh
 omarchy plugin add https://github.com/WhiteHades/omarchy-topbar-peek --enable --yes
@@ -51,8 +51,9 @@ omarchy plugin remove io.github.whitehades.topbar-peek --yes
 
 `Bar.qml` inherits `qs.plugins.bar.Bar`. It finds that bar's native panel
 windows and adds a two-pixel Wayland edge trigger plus a passive hover
-observer. While hidden, it animates only the top margin and promotes the
-window to the overlay layer. The stock bar keeps `ExclusionMode.Ignore`
+observer on the widgets' shared parent. This lets native hover handlers,
+including the tray drawer, receive pointer events. While hidden, it animates
+only the top margin and promotes the window to the overlay layer. The stock bar keeps `ExclusionMode.Ignore`
 because its `barHidden` state stays true. No polling process, extra daemon,
 copied widget implementation, packaged-file edit, or Hyprland rule is needed.
 
@@ -77,11 +78,19 @@ omarchy shell topbar-peek status
 ```
 
 Run the check from an active Hyprland session with Top Bar Peek selected and the bar
-at the top. It moves the pointer, opens/closes the clock popout, and toggles the
-bar; it restores the pointer and hidden preference afterward. It checks edge
+at the top. Install the check dependency with `omarchy pkg add python-evdev`
+if needed. Your session must have write access to `/dev/uinput` for its temporary
+test pointer. Compositor pointer warps alone do not deliver motion within a
+surface, so tray checks use actual input events.
+
+It moves the pointer, opens/closes the clock and tray management popouts, and
+toggles the bar; it restores the pointer and hidden preference afterward. It checks edge
 reveal, widget hover, overlay placement, unchanged window geometry and monitor
-reserved space, popup retention, hide, and normal pinned visibility. It assumes
-the stock clock widget is enabled and no popout is already open.
+reserved space, popup retention, hide, and normal pinned visibility. It also
+checks native tray expansion, movement across app icons, right-click management,
+and collapse in both hidden and pinned modes. Tray checks report a skip when
+there are no drawer items. It assumes the stock clock widget is enabled and no
+popout is already open.
 
 Leave the pointer idle during the check. `--appearance` repeats it with
 `omarchy bar transparent true/false` and `omarchy plugin enable/disable
@@ -94,6 +103,7 @@ Live checks on Omarchy 4.0.4-1 covered:
 |---|---|
 | Hidden edge reveal, widget hover, exit and rapid re-entry | Passed |
 | Clock popout interaction and dismissal | Passed |
+| Tray hover expansion, icon hover, right-click management and collapse | Passed |
 | Normal pinned mode and 16 consecutive native toggles | Passed |
 | Opaque and transparent bars, with and without desktop wallpaper | Passed |
 | Overlay above a fullscreen application, unchanged window geometry | Passed |

@@ -35,13 +35,33 @@ Native.Bar {
     function onScreensChanged() { Qt.callLater(root.findBarPanels) }
   }
 
+  // Read native tray state for the live interaction regression check.
+  function trayState(window) {
+    function find(item) {
+      if (item.moduleName === "omarchy.tray" && "drawerExtent" in item) return item
+      for (const child of item.children || []) {
+        const found = find(child)
+        if (found) return found
+      }
+      return null
+    }
+    const tray = find(window.contentItem)
+    if (!tray) return null
+    const point = tray.mapToItem(window.contentItem, 0, 0)
+    return { x: point.x, y: point.y, height: tray.height,
+      slot: tray.trayItemExtent, extent: tray.drawerExtent,
+      expanded: tray.expanded, progress: tray.revealProgress,
+      manageOpen: tray.managePopupOpen }
+  }
+
   IpcHandler {
     target: "topbar-peek"
     function status(): string {
       return JSON.stringify({ hidden: root.barHidden, position: root.position,
         screens: peekControllers.instances.map(p => ({
           name: p.modelData.screen.name, revealed: p.revealed,
-          held: p.held, offset: p.offset, hover: p.hoverState
+          held: p.held, offset: p.offset, hover: p.hoverState,
+          tray: root.trayState(p.modelData)
         })) })
     }
   }
@@ -91,15 +111,13 @@ Native.Bar {
           restoreMode: Binding.RestoreBindingOrValue
         }
 
-        Item {
+        HoverHandler {
+          id: barHover
+          // Observe from an ancestor. A sibling overlay suppresses native
+          // widget hover handlers, including the tray drawer, even if passive.
           parent: peek.modelData.contentItem
-          anchors.fill: parent
-          z: 1000000
-          HoverHandler {
-            id: barHover
-            blocking: false
-            onHoveredChanged: if (hovered && root.barHidden && peek.enabledHere) peek.revealed = true
-          }
+          blocking: false
+          onHoveredChanged: if (hovered && root.barHidden && peek.enabledHere) peek.revealed = true
         }
 
         Timer {

@@ -6,6 +6,8 @@ import pathlib
 import subprocess
 import time
 
+from evdev import UInput, ecodes
+
 
 def run(*args):
     return subprocess.check_output(args, text=True).strip()
@@ -15,8 +17,12 @@ def state():
     return json.loads(run("omarchy", "shell", "topbar-peek", "status"))
 
 
-def move(x, y):
+def move(x, y, pointer=None):
     run("hyprctl", "eval", f"hl.dispatch(hl.dsp.cursor.move({{ x = {x}, y = {y} }}))")
+    if pointer is not None:
+        # A compositor warp inside one surface does not send a Qt motion event.
+        pointer.write(ecodes.EV_REL, ecodes.REL_X, 1)
+        pointer.syn()
 
 
 def wait_for(predicate):
@@ -34,6 +40,57 @@ def geometry():
     monitors = json.loads(run("hyprctl", "monitors", "-j"))
     return ({c["address"]: (c["at"], c["size"]) for c in clients},
             {m["name"]: m["reserved"] for m in monitors})
+
+
+def check_tray(monitor):
+    def panel(s):
+        return next(p for p in s["screens"] if p["name"] == monitor["name"])
+
+    tray = panel(state())["tray"]
+    if not tray or tray["extent"] == 0:
+        print(f"SKIP {monitor['name']}: no native tray drawer items")
+        return
+    with UInput({ecodes.EV_KEY: [ecodes.BTN_LEFT, ecodes.BTN_RIGHT],
+                 ecodes.EV_REL: [ecodes.REL_X, ecodes.REL_Y]},
+                name="topbar-peek-check") as pointer:
+        time.sleep(0.3)  # Allow the compositor to register the test pointer.
+        x, y = monitor["x"], monitor["y"]
+        move(x + 100, y + round(tray["height"] / 2), pointer)
+        wait_for(lambda s: panel(s)["tray"]["progress"] == 0)
+        # Enter the collapsed chevron, then traverse the revealed app icons.
+        move(x + round(tray["x"] + tray["extent"] + tray["slot"] / 2),
+             y + round(tray["y"] + tray["height"] / 2), pointer)
+        wait_for(lambda s: panel(s)["tray"]["progress"] == 1)
+        for offset in range(round(tray["extent"]), 0, -round(tray["slot"])):
+            move(x + round(tray["x"] + offset + tray["slot"] / 2),
+                 y + round(tray["y"] + tray["height"] / 2), pointer)
+            time.sleep(0.2)
+            current = state()
+            assert panel(current)["tray"]["expanded"], "Native tray lost hover over app icons"
+            assert not current["hidden"] or panel(current)["revealed"], "Tray hover lost the bar"
+        move(x + 100, y + round(tray["height"] / 2), pointer)
+        wait_for(lambda s: panel(s)["tray"]["progress"] == 0)
+        # Right-click the chevron to exercise native button and popup delivery.
+        for opening in [True, False]:
+            move(x + round(tray["x"] + tray["extent"] + tray["slot"] / 2),
+                 y + round(tray["y"] + tray["height"] / 2), pointer)
+            wait_for(lambda s: panel(s)["tray"]["progress"] == 1)
+            move(x + round(tray["x"] + tray["slot"] / 2),
+                 y + round(tray["y"] + tray["height"] / 2), pointer)
+            time.sleep(0.1)
+            pointer.write(ecodes.EV_KEY, ecodes.BTN_RIGHT, 1)
+            pointer.syn()
+            pointer.write(ecodes.EV_KEY, ecodes.BTN_RIGHT, 0)
+            pointer.syn()
+            wait_for(lambda s: panel(s)["tray"]["manageOpen"] == opening)
+            if opening:
+                move(x + 100, y + 200, pointer)
+                time.sleep(0.4)
+                current = state()
+                assert not current["hidden"] or panel(current)["revealed"], "Tray popup lost the bar"
+        move(x + 100, y + round(tray["height"] / 2), pointer)
+        wait_for(lambda s: panel(s)["tray"]["progress"] == 0)
+        print(f"PASS {monitor['name']}: tray hover, icons, right-click popup, collapse")
 
 
 def check():
@@ -86,6 +143,7 @@ def check():
                 move(x, y + 12)
                 time.sleep(0.2)
                 assert panel(state())["revealed"], "Re-entry lost to a hide timeout"
+            check_tray(monitor)
             move(x, y + 200)
             wait_for(lambda s: not panel(s)["revealed"] and panel(s)["offset"] == hidden_offset)
             assert geometry() == before, "Hiding changed client geometry or reserved space"
@@ -108,7 +166,11 @@ def check():
         time.sleep(0.4)
         assert not state()["hidden"], "Pinned bar unexpectedly hid"
         print("PASS normal visible toggle stays pinned")
+        for monitor in monitors:
+            check_tray(monitor)
     finally:
+        # Switching popouts also dismisses tray management after a failed check.
+        run("omarchy", "shell", "omarchy.clock", "open")
         run("omarchy", "shell", "omarchy.clock", "close")
         run("omarchy", "toggle", "bar", "on" if was_hidden else "off")
         move(cursor["x"], cursor["y"])
